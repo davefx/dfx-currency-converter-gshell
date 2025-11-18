@@ -67,9 +67,26 @@ export default class CurrencyPrefs extends ExtensionPreferences {
 
         session.send_and_read_async(message, 0, null, (source, result) => {
             try {
-                const bytes = session.send_and_read_finish(result).get_data();
-                const json = JSON.parse(new TextDecoder().decode(bytes));
+                const bytes = session.send_and_read_finish(result);
+                const response = new TextDecoder().decode(bytes.get_data());
+                const json = JSON.parse(response);
+                
+                // Check if the response is an error (has status, code, message as top-level keys only)
+                const keys = Object.keys(json);
+                if ((keys.includes('status') || keys.includes('code') || keys.includes('message')) && keys.length <= 3) {
+                    console.log(`API returned error: ${JSON.stringify(json)}`);
+                    this._loadFallbackCurrencies();
+                    return;
+                }
+                
                 const currencies = Object.keys(json).sort();
+                
+                // Validate we got actual currencies (should have at least 10)
+                if (currencies.length < 10) {
+                    console.log(`Unexpected API response, got only ${currencies.length} currencies`);
+                    this._loadFallbackCurrencies();
+                    return;
+                }
 
                 // Clear previous entries
                 this._fromCombo.remove_all();
@@ -96,7 +113,41 @@ export default class CurrencyPrefs extends ExtensionPreferences {
 
             } catch (e) {
                 console.log(`Currency fetch failed: ${e}`);
+                this._loadFallbackCurrencies();
             }
+        });
+    }
+
+    _loadFallbackCurrencies() {
+        // Fallback list of common currencies if API fails
+        const commonCurrencies = [
+            'AED', 'ARS', 'AUD', 'BRL', 'CAD', 'CHF', 'CNY', 'COP',
+            'DKK', 'EUR', 'GBP', 'HKD', 'IDR', 'INR', 'JPY', 'KRW',
+            'MXN', 'NOK', 'NZD', 'PLN', 'RUB', 'SEK', 'SGD', 'THB',
+            'TRY', 'USD', 'ZAR'
+        ];
+
+        // Clear previous entries
+        this._fromCombo.remove_all();
+        this._toCombo.remove_all();
+
+        for (const c of commonCurrencies) {
+            this._fromCombo.append_text(c);
+            this._toCombo.append_text(c);
+        }
+
+        const currentFrom = this._settings.get_string('source-currency');
+        const currentTo = this._settings.get_string('target-currency');
+
+        this._fromCombo.set_active(commonCurrencies.indexOf(currentFrom) !== -1 ? commonCurrencies.indexOf(currentFrom) : commonCurrencies.indexOf('USD'));
+        this._toCombo.set_active(commonCurrencies.indexOf(currentTo) !== -1 ? commonCurrencies.indexOf(currentTo) : commonCurrencies.indexOf('EUR'));
+
+        this._fromCombo.connect('changed', () => {
+            this._settings.set_string('source-currency', this._fromCombo.get_active_text());
+        });
+
+        this._toCombo.connect('changed', () => {
+            this._settings.set_string('target-currency', this._toCombo.get_active_text());
         });
     }
 }
