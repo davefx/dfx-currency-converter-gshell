@@ -40,8 +40,9 @@ function bytesToString(bytes) {
 // Initialize the application
 function main(args) {
     if (args.length < 2) {
-        print("Usage: currency-chart BASE TARGET");
+        print("Usage: currency-chart BASE TARGET [API_KEY]");
         print("Example: currency-chart USD BRL");
+        print("Example with API key: currency-chart USD BRL your-api-key");
         return 1;
     }
 
@@ -53,8 +54,9 @@ function main(args) {
         application_id: 'com.example.currencychart'
     });
 
+    const apiKey = args.length >= 3 ? args[2] : null;
     app.connect('activate', () => {
-        const win = new ChartWindow(app, args[0], args[1]);
+        const win = new ChartWindow(app, args[0], args[1], apiKey);
         win.present();
     });
 
@@ -64,7 +66,7 @@ function main(args) {
 // Chart window class
 const ChartWindow = GObject.registerClass(
     class ChartWindow extends Gtk.ApplicationWindow {
-        _init(app, base, target) {
+        _init(app, base, target, apiKey) {
             super._init({
                 application: app,
                 title: `Exchange Rate Chart: ${base}/${target}`,
@@ -75,6 +77,7 @@ const ChartWindow = GObject.registerClass(
             // Initialize properties
             this._base = base;
             this._target = target;
+            this._apiKey = apiKey;
             this._values = [];
             this._dates = [];
             this._is_dark = this._detect_dark_theme();
@@ -240,7 +243,12 @@ const ChartWindow = GObject.registerClass(
 
         _fetch_data() {
             const days = this._get_period_days();
-            const url = `https://economia.awesomeapi.com.br/json/daily/${this._base}-${this._target}/${days}`;
+            let url = `https://economia.awesomeapi.com.br/json/daily/${this._base}-${this._target}/${days}`;
+            
+            // Add API key if provided
+            if (this._apiKey && this._apiKey.trim() !== '') {
+                url += `?apikey=${encodeURIComponent(this._apiKey)}`;
+            }
 
             // Show loading state
             this._showLoading();

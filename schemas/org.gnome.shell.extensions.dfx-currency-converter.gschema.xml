@@ -8,6 +8,11 @@
       <default>'EUR'</default>
       <summary>Target currency</summary>
     </key>
+    <key name="api-key" type="s">
+      <default>''</default>
+      <summary>API Key</summary>
+      <description>Optional API key for the currency conversion service to avoid rate limiting</description>
+    </key>
   </schema>
 </schemalist>
 

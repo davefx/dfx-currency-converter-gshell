@@ -30,6 +30,24 @@ export default class CurrencyPrefs extends ExtensionPreferences {
         toRow.add_suffix(this._toCombo);
         toRow.activatable_widget = this._toCombo;
 
+        // API Key
+        const apiKeyRow = new Adw.ActionRow({ 
+            title: 'API Key', 
+            subtitle: 'Optional API key to avoid rate limiting (429 errors)' 
+        });
+        const apiKeyEntry = new Gtk.Entry({
+            visible: true,
+            placeholder_text: 'Enter API key (optional)',
+            text: this._settings.get_string('api-key'),
+            hexpand: true,
+            valign: Gtk.Align.CENTER
+        });
+        apiKeyEntry.connect('changed', () => {
+            this._settings.set_string('api-key', apiKeyEntry.get_text());
+        });
+        apiKeyRow.add_suffix(apiKeyEntry);
+        apiKeyRow.activatable_widget = apiKeyEntry;
+
         // Refresh button
         const refreshButton = new Gtk.Button({
             label: "Refresh currencies",
@@ -42,6 +60,7 @@ export default class CurrencyPrefs extends ExtensionPreferences {
 
         group.add(fromRow);
         group.add(toRow);
+        group.add(apiKeyRow);
         page.add(group);
 
 	const extraGroup = new Adw.PreferencesGroup();
@@ -63,7 +82,15 @@ export default class CurrencyPrefs extends ExtensionPreferences {
 
     _loadCurrencies() {
         const session = new Soup.Session();
-        const message = Soup.Message.new('GET', 'https://economia.awesomeapi.com.br/json/available/uniq');
+        const apiKey = this._settings.get_string('api-key');
+        let url = 'https://economia.awesomeapi.com.br/json/available/uniq';
+        
+        // Add API key if provided
+        if (apiKey && apiKey.trim() !== '') {
+            url += `?apikey=${encodeURIComponent(apiKey)}`;
+        }
+        
+        const message = Soup.Message.new('GET', url);
 
         session.send_and_read_async(message, 0, null, (source, result) => {
             try {
