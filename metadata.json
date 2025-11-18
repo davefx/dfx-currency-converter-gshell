@@ -2,7 +2,7 @@
   "uuid": "dfx-currency-converter-gshell@davefx.github.com",
   "name": "DFX Currency Converter",
   "description": "Configurable currency converter. Updates are received every 30 seconds.\n\nDerives from Dollar-PKR. This extension uses economia.awesomeapi.com.br",
-  "shell-version": ["47","48"],
+  "shell-version": ["47","48","49"],
   "url": "https://github.com/davefx/dfx-currency-converter-gshell",
   "settings-schema": "org.gnome.shell.extensions.currency-converter",
   "preferences": "prefs"

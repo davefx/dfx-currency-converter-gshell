@@ -1,6 +1,6 @@
 # Currency Converter
 ```
-Gnome-Shell v.(42, 43, 44, 45, 46, 47, 48) Extension, for conversion of USD to EUR on the center of the top panel.
+Gnome-Shell v.(42, 43, 44, 45, 46, 47, 48, 49) Extension, for conversion of USD to EUR on the center of the top panel.
 ```
 This is extension is a modified  version of https://github.com/shoaibzs/Dollar-PKR-43 extension to show any currency conversion combination instead of USD to PKR. 
 ```
