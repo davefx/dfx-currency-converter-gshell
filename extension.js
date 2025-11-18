@@ -83,8 +83,15 @@ export default class CurrencyConverterExtension extends Extension {
             this._indicator = null;
         }
 
-        this._button = null;
-        this._label = null;
+        if (this._button) {
+            this._button.destroy();
+            this._button = null;
+        }
+
+        if (this._label) {
+            this._label.destroy();
+            this._label = null;
+        }
 
         if (session) {
             session.abort();
