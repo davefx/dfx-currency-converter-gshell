@@ -67,8 +67,9 @@ export default class CurrencyPrefs extends ExtensionPreferences {
 
         session.send_and_read_async(message, 0, null, (source, result) => {
             try {
-                const bytes = session.send_and_read_finish(result).get_data();
-                const json = JSON.parse(new TextDecoder().decode(bytes));
+                const bytes = session.send_and_read_finish(result);
+                const response = new TextDecoder().decode(bytes.get_data());
+                const json = JSON.parse(response);
                 const currencies = Object.keys(json).sort();
 
                 // Clear previous entries
