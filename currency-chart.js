@@ -247,7 +247,7 @@ const ChartWindow = GObject.registerClass(
             
             // Add API key if provided
             if (this._apiKey && this._apiKey.trim() !== '') {
-                url += `?apikey=${encodeURIComponent(this._apiKey)}`;
+                url += `?token=${encodeURIComponent(this._apiKey)}`;
             }
 
             // Show loading state

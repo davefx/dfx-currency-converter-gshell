@@ -87,7 +87,7 @@ export default class CurrencyPrefs extends ExtensionPreferences {
         
         // Add API key if provided
         if (apiKey && apiKey.trim() !== '') {
-            url += `?apikey=${encodeURIComponent(apiKey)}`;
+            url += `?token=${encodeURIComponent(apiKey)}`;
         }
         
         const message = Soup.Message.new('GET', url);

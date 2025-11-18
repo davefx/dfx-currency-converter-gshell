@@ -107,7 +107,7 @@ export default class CurrencyConverterExtension extends Extension {
         let url = `https://economia.awesomeapi.com.br/last/${source}-${target}`;
         // Add API key if provided
         if (apiKey && apiKey.trim() !== '') {
-            url += `?apikey=${encodeURIComponent(apiKey)}`;
+            url += `?token=${encodeURIComponent(apiKey)}`;
         }
         
         const message = Soup.Message.new('GET', url);
