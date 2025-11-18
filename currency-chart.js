@@ -40,8 +40,9 @@ function bytesToString(bytes) {
 // Initialize the application
 function main(args) {
     if (args.length < 2) {
-        print("Usage: currency-chart BASE TARGET");
+        print("Usage: currency-chart BASE TARGET [API_KEY]");
         print("Example: currency-chart USD BRL");
+        print("Example with API key: currency-chart USD BRL your-api-key");
         return 1;
     }
 
@@ -53,8 +54,9 @@ function main(args) {
         application_id: 'com.example.currencychart'
     });
 
+    const apiKey = args.length >= 3 ? args[2] : null;
     app.connect('activate', () => {
-        const win = new ChartWindow(app, args[0], args[1]);
+        const win = new ChartWindow(app, args[0], args[1], apiKey);
         win.present();
     });
 
@@ -64,7 +66,7 @@ function main(args) {
 // Chart window class
 const ChartWindow = GObject.registerClass(
     class ChartWindow extends Gtk.ApplicationWindow {
-        _init(app, base, target) {
+        _init(app, base, target, apiKey) {
             super._init({
                 application: app,
                 title: `Exchange Rate Chart: ${base}/${target}`,
@@ -75,6 +77,7 @@ const ChartWindow = GObject.registerClass(
             // Initialize properties
             this._base = base;
             this._target = target;
+            this._apiKey = apiKey;
             this._values = [];
             this._dates = [];
             this._is_dark = this._detect_dark_theme();
@@ -240,7 +243,12 @@ const ChartWindow = GObject.registerClass(
 
         _fetch_data() {
             const days = this._get_period_days();
-            const url = `https://economia.awesomeapi.com.br/json/daily/${this._base}-${this._target}/${days}`;
+            let url = `https://economia.awesomeapi.com.br/json/daily/${this._base}-${this._target}/${days}`;
+            
+            // Add API key if provided
+            if (this._apiKey && this._apiKey.trim() !== '') {
+                url += `?token=${encodeURIComponent(this._apiKey)}`;
+            }
 
             // Show loading state
             this._showLoading();
@@ -327,8 +335,27 @@ const ChartWindow = GObject.registerClass(
                     print(`Error with send_finish: ${e.message}`);
 
                     // Try to get response via message properties
-                    if (message.status_code !== 200) {
-                        throw new Error(`HTTP error: ${message.status_code}`);
+                    // Safely check status code with try-catch to avoid enum errors
+                    try {
+                        let statusCode = null;
+                        try {
+                            statusCode = message.status_code;
+                        } catch (statusError) {
+                            // status_code property might not be available or might throw
+                            print(`Could not access status_code: ${statusError.message}`);
+                        }
+                        
+                        if (statusCode !== null && statusCode !== 200) {
+                            // Provide user-friendly message for specific status codes
+                            if (statusCode === 429) {
+                                throw new Error("Too many requests. Please wait a moment and try again.");
+                            } else {
+                                throw new Error(`HTTP error ${statusCode}`);
+                            }
+                        }
+                    } catch (statusCheckError) {
+                        // If we can't check status, proceed with caution
+                        print(`Status check error: ${statusCheckError.message}`);
                     }
 
                     if (message.response_body && message.response_body.data) {
@@ -339,9 +366,35 @@ const ChartWindow = GObject.registerClass(
                 }
 
                 if (input_stream) {
-                    // Get HTTP status
-                    if (message.get_status() !== 200) {
-                        throw new Error(`HTTP error: ${message.get_status()}`);
+                    // Get HTTP status - wrap in try-catch to handle enum issues
+                    try {
+                        let statusCode = null;
+                        try {
+                            statusCode = message.get_status();
+                        } catch (getStatusError) {
+                            // Try alternative method if get_status() fails
+                            try {
+                                statusCode = message.status_code;
+                            } catch (statusCodeError) {
+                                print(`Could not get status code: ${statusCodeError.message}`);
+                            }
+                        }
+                        
+                        if (statusCode !== null && statusCode !== 200) {
+                            // Provide user-friendly message for specific status codes
+                            if (statusCode === 429) {
+                                throw new Error("Too many requests. Please wait a moment and try again.");
+                            } else {
+                                throw new Error(`HTTP error ${statusCode}`);
+                            }
+                        }
+                    } catch (statusCheckError) {
+                        // Rethrow if it's an actual HTTP error
+                        if (statusCheckError.message.includes("HTTP error") || statusCheckError.message.includes("Too many requests")) {
+                            throw statusCheckError;
+                        }
+                        // Otherwise log and continue - maybe the request succeeded anyway
+                        print(`Status check warning: ${statusCheckError.message}`);
                     }
 
                     // Read the data from input stream
@@ -355,7 +408,7 @@ const ChartWindow = GObject.registerClass(
                     throw new Error("No data received from server");
                 }
             } catch (e) {
-                this._showError(`Response handling error: ${e.message} ${e.name}`);
+                this._showError(e.message);
             }
         }
 

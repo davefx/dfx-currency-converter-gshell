@@ -83,8 +83,15 @@ export default class CurrencyConverterExtension extends Extension {
             this._indicator = null;
         }
 
-        this._button = null;
-        this._label = null;
+        if (this._button) {
+            this._button.destroy();
+            this._button = null;
+        }
+
+        if (this._label) {
+            this._label.destroy();
+            this._label = null;
+        }
 
         if (session) {
             session.abort();
@@ -98,12 +105,18 @@ export default class CurrencyConverterExtension extends Extension {
     _updateConversion() {
         const source = this._settings.get_string('source-currency');
         const target = this._settings.get_string('target-currency');
+        const apiKey = this._settings.get_string('api-key');
 
         if (!session) {
             session = new Soup.Session();
         }
 
-        const url = `https://economia.awesomeapi.com.br/last/${source}-${target}`;
+        let url = `https://economia.awesomeapi.com.br/last/${source}-${target}`;
+        // Add API key if provided
+        if (apiKey && apiKey.trim() !== '') {
+            url += `?token=${encodeURIComponent(apiKey)}`;
+        }
+        
         const message = Soup.Message.new('GET', url);
 
         session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, (sourceObj, res) => {
@@ -127,10 +140,17 @@ export default class CurrencyConverterExtension extends Extension {
 
         const source = this._settings.get_string('source-currency');
         const target = this._settings.get_string('target-currency');
+        const apiKey = this._settings.get_string('api-key');
 
         let script_path = this.path + "/currency-chart.js";
 
-        GLib.spawn_async(null, ["gjs", script_path, source, target], null, GLib.SpawnFlags.SEARCH_PATH, null);
+        // Pass API key as a third argument if provided
+        const args = ["gjs", script_path, source, target];
+        if (apiKey && apiKey.trim() !== '') {
+            args.push(apiKey);
+        }
+
+        GLib.spawn_async(null, args, null, GLib.SpawnFlags.SEARCH_PATH, null);
     }
 
 
