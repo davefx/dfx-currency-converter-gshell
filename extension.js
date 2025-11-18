@@ -25,6 +25,7 @@ export default class CurrencyConverterExtension extends Extension {
         this._button = null;
         this._label = null;
         this._refreshTimeout = null;
+        this._indicator = null;
     }
 
     enable() {
@@ -52,7 +53,7 @@ export default class CurrencyConverterExtension extends Extension {
         });
 
         // Compatible with GNOME 47 and 48+
-        Main.panel.addToStatusArea('dfx-currency-converter', this._button, 0, 'center');
+        this._indicator = Main.panel.addToStatusArea('dfx-currency-converter', this._button, 0, 'center');
 
         this._refreshRateSeconds = 30;
         this._updateConversion();
@@ -77,15 +78,13 @@ export default class CurrencyConverterExtension extends Extension {
             this._refreshTimeout = null;
         }
 
-        if (this._button) {
-            this._button.destroy();
-            this._button = null;
+        if (this._indicator) {
+            this._indicator.destroy();
+            this._indicator = null;
         }
 
-        if (this._label) {
-            this._label.destroy();
-            this._label = null;
-        }
+        this._button = null;
+        this._label = null;
 
         if (session) {
             session.abort();
